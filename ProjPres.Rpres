@@ -1,0 +1,110 @@
+Data Products: Project Presentation 
+========================================================
+author: JC Meriaux
+date: 10-25-2015
+
+Agenda
+========================================================
+
+The shiny application shows a word cloud based on Twitter media news feeds (CNN and Fox News). It allows the selection of date range, source, and word cloud parameters. We cover the following:
+
+- Structure of the Shiny application
+  + Data preparation
+  + Interface: ui.R
+  + Business logic: server.R
+  + Results
+- Benefits
+
+Shiny Application: Data preparation
+========================================================
+
+- Use _TwitteR_ package to get tweet content
+  + Use setup_twitter_oauth: a twitter application needs to be set up first (see http://dev.twitter.com)
+  + Use _searchTwitter_ API to collect Tweets
+- Store tweets in a data frame: source and text for each tweet
+- Save the data frame in a RDS file
+  + saved in same directory as ui.R and server.R
+  
+
+```{r, echo=FALSE}
+library("wordcloud");
+library("tm");
+library(RColorBrewer);
+
+tcloud <- function (tw, dstart,dstop,maxw,minf)
+{
+  twf <- tw[(tw$date >= dstart ) & ( tw$date <= dstop ) ,];
+  
+  tcorpus <- Corpus(VectorSource(twf$text));
+  tcorpus <- tm_map(tcorpus, content_transformer(tolower));
+  tcorpus <- tm_map(tcorpus, removeNumbers) ;
+  tcorpus <- tm_map(tcorpus, removePunctuation);
+  tcorpus <- tm_map(tcorpus, stripWhitespace);
+  tcorpus <- tm_map(tcorpus, removeWords, stopwords("english")); 
+  cl <- brewer.pal(8,"Dark2")
+  w <- wordcloud(tcorpus,min.freq=minf,max.words=maxw, random.order=F, colors=cl)
+}
+
+tw <- readRDS('./CProject/tw.rds');
+```
+
+
+Shiny Application: User Interface (ui.R)
+========================================================
+
+- Source is [here](https://github.com/jmeriaux/dsdataproduct/blob/master/ui.R)
+- A _sidebarPanel_ is used to capture parameters
+  + Source of the tweet: _selectInput_ object
+  + Date range: _dateRangeInput_ object with min and max dates
+  + Maximum number of words: _sliderInput_ object
+  + Minimum frequency: _numericInput_ object
+- Main area uses _tabsetPanel_ to show the following
+  + One panel to show the WordCloud
+  + One panel to show an online help text
+
+
+
+Shiny Application: Business logic (server.R)
+========================================================
+
+- Source is [here](https://github.com/jmeriaux/dsdataproduct/blob/master/server.R)
+- The _tcloud_ function is evaluated when UI controls are updated
+  + filter tweets by start and end date
+  + use "tm" R package to remove stopwords,punctuation
+  + use "tm" R package to strip whitespace and stopwords
+- The "wordcloud" package is used to plot the wordcloud
+  + Use mininimum frequency captured on the side panel
+  + Use maximum number of words captured on the side panel
+
+```
+tcloud <- function (tw, dstart,dstop,maxw,minf)
+```
+
+Shiny Application: Results
+========================================================
+
+Below is the word cloud, for all the tweets with a minimum frequency of 3 and maximum number of words 250 (call wordcloud package for rendering).  
+   
+The shiny application deployed on shinyapps.io can be seen [here](https://jmeriaux.shinyapps.io/CProject).
+
+```{r, echo=FALSE, fig.width=10,fig.height=10 }
+tcloud(tw,as.Date("2015-10-16"),as.Date("2015-10-25"),250,3)
+```
+
+
+
+Shiny applications: Benefits
+========================================================
+
+- Shiny does not require detailed knowledgle of UI technologies
+  + No html knowledge is required
+  + No Javascript knowledge is required
+- UI controls have nice built-in functionality such as
+  + Max and min value are simple parameters
+  + Support for different interaction models (reactive or not)
+- Easy deployment on shinyio.apps
+  + Push button approach in RStudio
+
+As a summary, shiny is a great prototyping tool allowing a non-technical user to create and publish very quickly interactive data presentation applications.
+
+
